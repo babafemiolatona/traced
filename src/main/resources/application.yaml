@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: traced-server
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+      indent-output: true
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+logging:
+  level:
+    root: INFO
+    com.traced: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %logger{36} - %msg%n"
+
+# Application configuration
+window:
+  minutes: 30
