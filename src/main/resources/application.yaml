@@ -1,10 +1,6 @@
 spring:
   application:
     name: traced-server
-  jackson:
-    serialization:
-      write-dates-as-timestamps: false
-      indent-output: true
 
 server:
   port: 8080
