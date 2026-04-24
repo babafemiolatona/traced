@@ -14,26 +14,26 @@ import java.time.Instant;
 public class SpanRequest {
 
     @NotBlank(message = "span_id is required")
-    @JsonProperty("span_id")
+    @JsonProperty("spanId")
     private String spanId;
 
     @NotBlank(message = "trace_id is required")
-    @JsonProperty("trace_id")
+    @JsonProperty("traceId")
     private String traceId;
 
-    @JsonProperty("parent_span_id")
+    @JsonProperty("parentSpanId")
     private String parentSpanId;
 
     @NotBlank(message = "service_name is required")
-    @JsonProperty("service_name")
+    @JsonProperty("serviceName")
     private String serviceName;
 
     @JsonProperty("status")
     private String status = "ok";
 
-    @JsonProperty("start_time")
+    @JsonProperty("startTime")
     @NotNull(message = "start_time is required")
-    private long startTime;
+    private Instant startTime;
 
     @NotNull(message = "duration is required")
     @JsonProperty("duration")

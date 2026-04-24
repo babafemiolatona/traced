@@ -10,26 +10,26 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @NoArgsConstructor
 public class Span {
     
-    @JsonProperty("span_id")
+    @JsonProperty("spanId")
     private String spanId;
 
-    @JsonProperty("trace_id")
+    @JsonProperty("traceId")
     private String traceId;
 
-    @JsonProperty("parent_span_id")
+    @JsonProperty("parentSpanId")
     private String parentSpanId;
 
-    @JsonProperty("service_name")
+    @JsonProperty("serviceName")
     private String serviceName;
 
     @JsonProperty("status")
     private String status;
 
-    @JsonProperty("start_time")
+    @JsonProperty("startTime")
     private Instant startTime;
 
     @JsonProperty("duration")
-    private Long duration;
+    private long duration;
 
     public boolean isRootSpan() {
         return parentSpanId == null || parentSpanId.isEmpty();
