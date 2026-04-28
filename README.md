@@ -17,3 +17,28 @@ In microservices architectures, a single user request flows through multiple ser
 - **Zero external dependencies** - Runs standalone with in-memory storage
 - **Bounded memory** - Automatic rolling-window eviction every 10 seconds
 - **Production tested** - Verified with 778,000+ concurrent spans
+
+---
+
+## Installation & Setup
+
+### Prerequisites
+- Java 17 or higher
+- Docker & Docker Compose (for containerized testing)
+- Maven (for building)
+
+### Quick Start
+
+**1. Clone and build:**
+```bash
+git clone https://github.com/babafemiolatona/traced.git
+cd traced
+mvn clean install
+```
+
+**2. Start the server:**
+```bash
+mvn spring-boot:run
+```
+
+The server runs on `http://localhost:8080`
