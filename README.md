@@ -42,3 +42,60 @@ mvn spring-boot:run
 ```
 
 The server runs on `http://localhost:8080`
+
+**3. Test with Docker (optional):**
+```bash
+# Start the app in Docker
+docker-compose up
+
+# The verifier will automatically test it
+```
+
+---
+
+## How It Works
+
+### The Three Core Jobs
+
+#### 1. **Accept Span Data** (POST /api/v1/spans)
+
+The application sends diagnostic information in this format:
+```json
+{
+  "spans": [
+    {
+      "spanId": "order-123",
+      "traceId": "user-456",
+      "parentSpanId": null,
+      "serviceName": "checkout",
+      "status": "ok",
+      "startTime": "2026-04-27T12:00:00Z",
+      "duration": 250
+    }
+  ]
+}
+```
+
+#### 2. **Assemble Traces** (Get /api/v1/traces)
+
+Traced automatically connects all the spans from a single request into one complete trace.
+
+**Example trace:**
+```
+User Request (trace ID: order-456)
+├── checkout-service (50ms) ✓
+│   ├── payment-api (30ms) ✓
+│   └── inventory-service (15ms) ✗ ERROR!
+└── notification-service (100ms) ✓
+```
+
+Key features:
+- **Automatic assembly** - Even if spans arrive out of order, Traced connects them
+- **Error tracking** - If ANY step fails, the entire trace is marked as "error"
+- **Dependency visibility** - You can see which services depend on which
+
+#### 3. **Clean Up Old Data** (Background eviction)
+
+Traced runs in memory and automatically deletes data older than 30 minutes. This keeps memory usage controlled without requiring a database.
+
+---
