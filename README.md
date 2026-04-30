@@ -296,3 +296,20 @@ docker-compose up
 # - Check for data loss or corruption
 # - Report 100% success rate if all good
 ```
+
+---
+
+## Contributing
+
+This is an educational project. To extend it:
+
+1. **Add database persistence** - Replace InMemoryTraceRepository with MongoDB backend
+2. **Add metrics** - Track ingestion rates, latencies, error rates
+3. **Add UI dashboard** - Visualize traces and spans graphically
+4. **Add sampling** - Don't store every trace, sample 1% for high-throughput systems
+
+---
+
+## License
+
+This project is for educational purposes.
