@@ -20,6 +20,53 @@ In microservices architectures, a single user request flows through multiple ser
 
 ---
 
+## Architecture Overview
+
+```
+┌─────────────────────────────────────┐
+│    The Applications (Services)      │
+│  checkout | payment | inventory     │
+└──────────────────┬──────────────────┘
+                   │
+                   │ Send span data (POST /api/v1/spans)
+                   ▼
+┌─────────────────────────────────────┐
+│        SpanController (REST API)    │
+│  Validates incoming span batches    │
+└──────────────────┬──────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────┐
+│    SpanIngestService (Core Logic)   │
+│  - Validates spans                  │
+│  - Links orphans to traces          │
+│  - Filters old data                 │
+└──────────────────┬──────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────┐
+│  InMemoryTraceRepository (Storage)  │
+│  - Stores traces (ConcurrentHashMap)|
+│  - Stores orphans (ConcurrentHashMap)|
+│  - Thread-safe, no locks needed      │
+└──────────────────┬──────────────────┘
+                   │
+     ┌─────────────┴─────────────┐
+     ▼                           ▼
+┌──────────────┐         ┌──────────────────┐
+│  Traces Map  │         │  Orphans Buffer  │
+│  (t1, t2...) │         │  (waiting spans) │
+└──────────────┘         └──────────────────┘
+     │
+     ▼ (Background eviction every 10 seconds)
+┌─────────────────────────────────────┐
+│     EvictionService (@Scheduled)    │
+│  Removes spans older than window    │
+└─────────────────────────────────────┘
+```
+
+---
+
 ## Installation & Setup
 
 ### Prerequisites
@@ -97,5 +144,76 @@ Key features:
 #### 3. **Clean Up Old Data** (Background eviction)
 
 Traced runs in memory and automatically deletes data older than 30 minutes. This keeps memory usage controlled without requiring a database.
+
+---
+
+## API Endpoints
+
+### Send Span Data
+```bash
+POST /api/v1/spans
+Content-Type: application/json
+
+{
+  "spans": [{ ... span data ... }]
+}
+```
+**Response:** 202 Accepted (data will be processed asynchronously)
+
+### Get All Traces
+```bash
+GET /api/v1/traces
+```
+**Response:** List of all complete traces with all their spans
+
+### Get Specific Trace
+```bash
+GET /api/v1/traces/{traceId}
+```
+**Response:** One complete trace with detailed span information
+
+### Get Statistics
+```bash
+GET /api/v1/stats
+```
+**Response:** 
+```json
+{
+  "totalTraces": 1500,
+  "orphanSpans": 3
+}
+```
+
+---
+
+## Key Concepts Explained
+
+### Span
+A **span** is one step in the journey. It represents one service doing one job.
+
+*Example spans:*
+- `checkout-service` receives an order
+- `payment-api` processes payment
+- `email-service` sends confirmation
+
+### Trace
+A **trace** is the complete journey of one request through all services.
+
+*Example trace:* A customer's order goes through checkout → payment → inventory → notification. All 4 steps belong to one trace.
+
+### Orphan Spans
+Sometimes a span arrives before its parent.
+
+*Why?* Network is unpredictable. If `payment-api` (child) responds faster than `checkout-service` (parent), we temporarily store the child in an "orphan buffer" until the parent arrives.
+
+Once the parent arrives, we automatically link the orphan to the parent.
+
+### Rolling Window
+Traced stores data in a **30-minute sliding window** (configurable).
+
+*How it works:*
+- Spans older than 30 minutes are automatically deleted
+- This keeps memory usage bounded (no database needed)
+- Background task runs every 10 seconds to clean up
 
 ---
