@@ -25,4 +25,6 @@ public interface TraceRepository {
 
     int getOrphanCount();
 
+    void clear();
+
 }

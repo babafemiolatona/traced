@@ -2,8 +2,7 @@ package com.tech.traced.repository;
 
 import com.tech.traced.models.Span;
 import com.tech.traced.models.Trace;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
@@ -12,10 +11,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 @Repository
 public class InMemoryTraceRepository implements TraceRepository {
-
-    private static final Logger logger = LoggerFactory.getLogger(InMemoryTraceRepository.class);
 
     private final ConcurrentHashMap<String, Trace> traces = new ConcurrentHashMap<>();
 
@@ -24,7 +22,7 @@ public class InMemoryTraceRepository implements TraceRepository {
     @Override
     public void addSpan(Span span) {
         if (span == null || span.getTraceId() == null) {
-            logger.warn("Null span or traceId, skipping");
+            log.warn("Null span or traceId, skipping");
             return;
         }
 
@@ -44,14 +42,14 @@ public class InMemoryTraceRepository implements TraceRepository {
         if (span.isRootSpan()) {
             Trace trace = traces.computeIfAbsent(span.getTraceId(), k -> new Trace(k));
             trace.addSpan(span);
-            logger.info("Root span added: traceId={}, spanId={}", span.getTraceId(), span.getSpanId());
+            log.info("Root span added: traceId={}, spanId={}", span.getTraceId(), span.getSpanId());
 
             linkOrphansToTrace(span.getTraceId());
         } else {
             Trace trace = traces.get(span.getTraceId());
             if (trace != null) {
                 trace.addSpan(span);
-                logger.info("Span added to existing trace: traceId={}, spanId={}, parentId={}",
+                log.info("Span added to existing trace: traceId={}, spanId={}, parentId={}",
                         span.getTraceId(), span.getSpanId(), span.getParentSpanId());
             } else {
                 traceOrphans = orphans.computeIfAbsent(span.getTraceId(), k -> new ArrayList<>());
@@ -60,7 +58,7 @@ public class InMemoryTraceRepository implements TraceRepository {
                 if (!alreadyExists) {
                     traceOrphans.add(span);
                     orphans.put(span.getTraceId(), traceOrphans);
-                    logger.info("Orphan span stored: traceId={}, spanId={}, orphanCount={}",
+                    log.info("Orphan span stored: traceId={}, spanId={}, orphanCount={}",
                             span.getTraceId(), span.getSpanId(), traceOrphans.size());
                 }
             }
@@ -75,7 +73,7 @@ public class InMemoryTraceRepository implements TraceRepository {
                 for (Span orphan : new ArrayList<>(traceOrphans)) {
                     trace.addSpan(orphan);
                     traceOrphans.remove(orphan);
-                    logger.info("Orphan linked to trace: traceId={}, spanId={}", traceId, orphan.getSpanId());
+                    log.info("Orphan linked to trace: traceId={}, spanId={}", traceId, orphan.getSpanId());
                 }
                 if (traceOrphans.isEmpty()) {
                     orphans.remove(traceId);
@@ -113,7 +111,7 @@ public class InMemoryTraceRepository implements TraceRepository {
         int spansAfter = traces.values().stream().mapToInt(Trace::getSpanCount).sum();
         int tracesAfter = traces.size();
 
-        logger.info("Eviction complete: removed {} spans from {} traces. Now {} spans in {} traces",
+        log.info("Eviction complete: removed {} spans from {} traces. Now {} spans in {} traces",
                 spansBefore - spansAfter, tracesBefore - tracesAfter, spansAfter, tracesAfter);
     }
 
@@ -138,5 +136,12 @@ public class InMemoryTraceRepository implements TraceRepository {
     @Override
     public int getOrphanCount() {
         return orphans.values().stream().mapToInt(List::size).sum();
+    }
+
+    @Override
+    public void clear() {
+        traces.clear();
+        orphans.clear();
+        log.info("Repository cleared");
     }
 }
