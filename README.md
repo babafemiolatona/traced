@@ -217,3 +217,82 @@ Traced stores data in a **30-minute sliding window** (configurable).
 - Background task runs every 10 seconds to clean up
 
 ---
+
+## Testing
+
+### Manual Testing (Understanding What Works)
+
+**Test 1: Single Span**
+```bash
+curl -X POST http://localhost:8080/api/v1/spans \
+  -H "Content-Type: application/json" \
+  -d '{
+    "spans": [{
+      "spanId": "s1",
+      "traceId": "t1",
+      "parentSpanId": null,
+      "serviceName": "api",
+      "status": "ok",
+      "startTime": "2026-04-27T12:00:00Z",
+      "duration": 100
+    }]
+  }'
+
+# Then query it:
+curl http://localhost:8080/api/v1/traces/t1
+```
+
+**Test 2: Out-of-Order Spans**
+```bash
+# Send child FIRST (before parent exists)
+curl -X POST http://localhost:8080/api/v1/spans \
+  -H "Content-Type: application/json" \
+  -d '{
+    "spans": [{
+      "spanId": "child",
+      "traceId": "t2",
+      "parentSpanId": "parent",
+      "serviceName": "db",
+      "status": "ok",
+      "startTime": "2026-04-27T12:00:00Z",
+      "duration": 50
+    }]
+  }'
+
+# Check stats - orphan should be waiting
+curl http://localhost:8080/api/v1/stats
+
+# Now send parent
+curl -X POST http://localhost:8080/api/v1/spans \
+  -H "Content-Type: application/json" \
+  -d '{
+    "spans": [{
+      "spanId": "parent",
+      "traceId": "t2",
+      "parentSpanId": null,
+      "serviceName": "api",
+      "status": "ok",
+      "startTime": "2026-04-27T12:00:00Z",
+      "duration": 200
+    }]
+  }'
+
+# Query trace - should have both now, linked correctly
+curl http://localhost:8080/api/v1/traces/t2
+```
+
+### Automated Testing (Scale Testing)
+
+```bash
+# Run all 60 unit tests
+mvn test
+
+# Run with Docker (includes stress testing)
+docker-compose up
+
+# The verifier will:
+# - Send 44,000+ spans concurrently
+# - Verify every span is correctly assembled
+# - Check for data loss or corruption
+# - Report 100% success rate if all good
+```
